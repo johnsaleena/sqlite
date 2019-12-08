@@ -224,17 +224,65 @@ session.query(Customer).filter(and_(
     )
 )).all()
 
+# is Null
 session.query(Order).filter(Order.date_shipped == None).all()
+
+# is not null
 session.query(Order).filter(Order.date_shipped != None).all()
+
+# In
 session.query(Customer).filter(Customer.first_name.in_(['Toby', 'Sarah'])).all()
+
+# Not In
 session.query(Customer).filter(Customer.first_name.notin_(['Toby', 'Sarah'])).all()
+
+# Between
 session.query(Item).filter(Item.cost_price.between(10, 50)).all()
+
+#NotBetween
 session.query(Item).filter(not_(Item.cost_price.between(10, 50))).all()
+
+# Like
 session.query(Item).filter(Item.name.like("%r")).all()
 session.query(Item).filter(Item.name.ilike("w%")).all()
+
+# Not Like
 session.query(Item).filter(not_(Item.name.like("W%"))).all()
+
+# limit() method
 session.query(Customer).limit(2).all()
 session.query(Customer).filter(Customer.address.ilike("%avenue")).limit(2).all()
+
+print(session.query(Customer).limit(2))
+print(session.query(Customer).filter(Customer.address.ilike("%avenue")).limit(2))
+
+# offset() method
+
+session.query(Customer).limit(2).offset(2).all()
+
+print(session.query(Customer).limit(2).offset(2))
+
+# order_by()method
+
+session.query(Item).filter(Item.name.ilike("wa%")).all()
+
+from sqlalchemy import desc
+
+session.query(Item).filter(Item.name.ilike("wa%")).order_by(desc(Item.cost_price)).all()
+
+# join method
+session.query(Customer).join(Order).all()
+session.query(Customer).join(Order)
+
+session.query(Customer.id, Customer.username, Order.id).join(Order).all()
+
+# group_by() method
+from sqlalchemy import func
+
+session.query(func.count(Customer.id)).join(Order).filter(
+    Customer.first_name == 'John',
+    Customer.last_name == 'Green',
+).group_by(Customer.id).scalar()
 
 # find the number of customers lives in each town
 
@@ -261,6 +309,48 @@ i = session.query(Item).get(8)
 i.selling_price = 25.91
 session.add(i)
 session.commit()
+
+# Dealing with Duplicates
+
+from sqlalchemy import distinct
+
+session.query(Customer.town).filter(Customer.id < 10).all()
+
+session.query(Customer.town).filter(Customer.id < 10).distinct().all()
+
+print(session.query(
+    func.count(distinct(Customer.town)),
+    func.count(Customer.town)
+).all())
+
+# Unions
+
+s1 = session.query(Item.id, Item.name).filter(Item.name.like("Wa%"))
+s2 = session.query(Item.id, Item.name).filter(Item.name.like("%e%"))
+print(s1.union(s2).all())
+print(s1.union_all(s2).all())
+
+# Updating Data
+
+i = session.query(Item).get(8)
+i.selling_price = 25.91
+session.add(i)
+session.commit()
+
+session.query(Item).filter(
+    Item.name.ilike("W%")
+).update({"quantity": 60}, synchronize_session='fetch')
+session.commit()
+
+## Raw Queries
+from sqlalchemy import text
+
+session.query(Customer).filter(text("first_name = 'John'")).all()
+
+session.query(Customer).filter(text("Town like 'Nor%'")).all()
+
+session.query(Customer).filter(text("town like 'Nor%'")).order_by(text("first_name, id desc")).all()
+
 
 # update quantity of all quantity of items to 60 whose name starts with 'W'
 
